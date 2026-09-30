@@ -1,7 +1,7 @@
-import { localClient } from "@/api/localClient";
+import { api } from "@/api/apiClient";
 
-// Client-side checks only improve UX. A production deployment must repeat every
-// check on the server (plus malware scanning) before a file is trusted.
+// Client-side checks give fast feedback. The server repeats the type, size and
+// signature checks before it stores anything.
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_FILES_PER_UPLOAD = 5;
 
@@ -48,14 +48,12 @@ export async function validateFiles(files, alreadyAttached = 0) {
 }
 
 export async function uploadPrivate(file) {
-  const { file_uri } = await localClient.files.upload(file);
-  return { name: file.name, type: file.type, size: file.size, file_uri };
+  const saved = await api.upload(file);
+  return { file_id: saved.id, name: saved.name, type: saved.type, size: saved.size, file_uri: saved.file_uri };
 }
 
-export async function readPrivate(file_uri) {
-  return localClient.files.getBlob(file_uri);
-}
-
-export async function openPrivate(file_uri) {
-  window.open(await localClient.files.getUrl(file_uri), "_blank", "noopener");
+// file_uri is always a same-origin /api/files/<id> path, served only to permitted users.
+export function openPrivate(file_uri) {
+  if (!String(file_uri).startsWith("/api/files/")) return;
+  window.open(file_uri, "_blank", "noopener");
 }

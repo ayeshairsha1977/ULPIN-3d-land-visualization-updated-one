@@ -1,6 +1,4 @@
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { localClient } from "@/api/localClient";
 import { Image } from "@/components/ui/image";
 import { Building2, Camera } from "lucide-react";
 import { useEntityList } from "@/hooks/useData";
@@ -10,15 +8,7 @@ const ALT = { "mrecw-block-3": "Malla Reddy Engineering College for Women Block 
 export default function PropertyPhoto({ property, className = "", showLabel = true }) {
   const { data: photos = [] } = useEntityList("PropertyPhoto", { property_id: property.id });
   const record = photos[0];
-  const { data: signedUrl } = useQuery({
-    queryKey: ["property-photo-url", record?.id, record?.updated_date],
-    enabled: !!record?.file_uri,
-    staleTime: 55 * 60 * 1000,
-    queryFn: async () =>
-      localClient.files.getUrl(record.file_uri),
-  });
-
-  const src = property.photo || signedUrl;
+  const src = property.photo || record?.file_uri;
   const label = record ? "Official Building Photo" : "Real Building Reference";
 
   if (src) {

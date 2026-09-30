@@ -38,3 +38,6 @@ dist-ssr
 
 # Test coverage output
 coverage
+
+# Uploaded files (local file storage for the API server)
+server/storage

@@ -36,7 +36,7 @@ export default function ComplaintNew() {
     if (Object.keys(errs).length) return;
     setSaving(true);
     try {
-      const c = await submitComplaint({ ...form, property_id: p.id, property_name: p.name, property_code: p.propertyCode, ulpin, location: `${p.location} (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})` }, user);
+      const c = await submitComplaint({ ...form, property_id: p.id, property_code: p.propertyCode, location: `${p.location} (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})` });
       invalidate("Complaint", "PropertyHistory", "Notification");
       setDone(c);
     } catch (error) {

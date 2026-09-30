@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { localClient } from "@/api/localClient";
+import { markNotificationsRead } from "@/services/workflow";
 import { useRole } from "@/hooks/useRole";
 import { useEntityList, useInvalidate } from "@/hooks/useData";
 import { fmtDateTime } from "@/lib/ids";
@@ -14,8 +14,12 @@ export default function NotificationPanel() {
   const unread = data.filter((n) => !n.read);
 
   const markAll = async () => {
-    await Promise.all(unread.map((n) => localClient.entities.Notification.update(n.id, { read: true })));
-    invalidate("Notification");
+    try {
+      await markNotificationsRead();
+      invalidate("Notification");
+    } catch (error) {
+      console.error("Marking notifications read failed", error);
+    }
   };
 
   return (

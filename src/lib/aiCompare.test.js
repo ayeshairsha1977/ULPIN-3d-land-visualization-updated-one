@@ -18,6 +18,7 @@ describe("compareValue", () => {
 
   it("compares floors as storey counts", () => {
     expect(compareValue("floors", "6", "G + 5")).toBe("match");
+    expect(compareValue("floors", "ground plus five floors", "G + 5")).toBe("match");
     expect(compareValue("floors", "2", "3")).toBe("differs");
     expect(compareValue("floors", "G+1", "1")).toBe("differs");
   });

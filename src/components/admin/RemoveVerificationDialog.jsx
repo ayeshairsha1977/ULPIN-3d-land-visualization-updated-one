@@ -23,7 +23,7 @@ export const REMOVAL_REASONS = [
 ];
 
 export default function RemoveVerificationDialog({ propertyId, onRemoved }) {
-  const { user, isGov } = useRole();
+  const { isGov } = useRole();
   const invalidate = useInvalidate();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
@@ -39,7 +39,7 @@ export default function RemoveVerificationDialog({ propertyId, onRemoved }) {
     setBusy(true);
     setErr("");
     try {
-      await removeVerification(propertyId, finalReason, remarks.trim(), user);
+      await removeVerification(propertyId, finalReason, remarks.trim());
       invalidate("PropertyStatus", "Verification", "PropertyHistory");
       setOpen(false);
       setReason(""); setOther(""); setRemarks("");

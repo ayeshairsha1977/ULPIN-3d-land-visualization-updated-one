@@ -17,7 +17,7 @@ export default function VerificationCard({ property }) {
             <li key={v.id} className="text-sm border-l-2 border-line pl-3">
               <div className="flex flex-wrap items-center gap-2">
                 <StatusBadge status={v.status} />
-                <span className="text-xs text-muted-foreground">{fmtDateTime(v.reviewed_at || v.created_date)} · {v.reviewer_name} ({v.reviewer_role})</span>
+                <span className="text-xs text-muted-foreground">{fmtDateTime(v.reviewed_at || v.created_date)} · {v.reviewer_name ? `${v.reviewer_name} (${v.reviewer_role})` : v.reviewer_role}</span>
               </div>
               {v.remarks && <p className="text-muted-foreground mt-1">{v.remarks}</p>}
               {v.removal_reason && <p className="text-xs text-red-600 mt-1">Removal reason: {v.removal_reason}</p>}

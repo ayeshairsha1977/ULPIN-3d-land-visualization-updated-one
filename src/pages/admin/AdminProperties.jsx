@@ -12,14 +12,14 @@ import VerificationCard from "@/components/property/VerificationCard";
 import { propertyFields } from "@/components/property/propertyFields";
 import { PROPERTIES } from "@/data/properties";
 import { useEntityList, useStatuses, useInvalidate } from "@/hooks/useData";
-import { useRole, ROLE_TITLES } from "@/hooks/useRole";
+import { useRole } from "@/hooks/useRole";
 import { verifyProperty } from "@/services/workflow";
 import RemoveVerificationDialog from "@/components/admin/RemoveVerificationDialog";
 
 const CHECKS = ["2D map & boundary", "3D model", "Property data", "Documents"];
 
 export default function AdminProperties() {
-  const { user, role } = useRole();
+  const { role } = useRole();
   const canManageVerification = role === "government";
   const [pid, setPid] = useState(PROPERTIES[2].id);
   const { data: applications = [] } = useEntityList("ULPINApplication", { property_id: pid });
@@ -39,7 +39,7 @@ export default function AdminProperties() {
     setBusy(status);
     setActionError("");
     try {
-      await verifyProperty(pid, status, remarks.trim(), checks, user, `${ROLE_TITLES[role]} (Demo)`);
+      await verifyProperty(pid, status, remarks.trim(), checks);
       invalidate("PropertyStatus", "Verification", "PropertyHistory");
       setRemarks(""); setChecks({});
     } catch (error) {

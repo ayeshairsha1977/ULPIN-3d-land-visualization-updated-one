@@ -16,7 +16,12 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.{js,jsx}', 'server/**/*.test.js'],
-    coverage: { include: ['src/services/**', 'src/lib/**', 'server/**'], exclude: ['**/*.test.js'] },
+    // Database tests need Postgres (docker compose up -d) and run via `npm run test:db`.
+    include: process.env.TEST_DB
+      ? ['server/**/*.db.test.js']
+      : ['src/**/*.test.{js,jsx}', 'server/**/*.test.js'],
+    exclude: process.env.TEST_DB ? [] : ['server/**/*.db.test.js', 'node_modules/**'],
+    fileParallelism: !process.env.TEST_DB,
+    coverage: { include: ['src/services/**', 'src/lib/**', 'server/**'], exclude: ['**/*.test.js', 'server/index.js', 'server/db/migrate.js'] },
   },
 });

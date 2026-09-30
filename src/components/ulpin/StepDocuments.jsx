@@ -51,7 +51,7 @@ export default function StepDocuments({ form, patch, errors }) {
         );
       })}
       {errors.documents && <p className="text-sm text-red-600">{errors.documents}</p>}
-      <p className="text-xs text-muted-foreground">Demo storage: files stay in this browser (IndexedDB) and are not uploaded to any server. Do not upload real ownership documents.</p>
+      <p className="text-xs text-muted-foreground">Files are uploaded to this prototype's server and shown only to you and reviewers. Do not upload real ownership documents.</p>
     </div>
   );
 }

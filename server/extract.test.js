@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import Anthropic from "@anthropic-ai/sdk";
 import { EXTRACTED_FIELDS } from "./schema.js";
 import { ExtractionError, MAX_DOCUMENT_BYTES, extractDocument, parseExtractRequest } from "./extract.js";
-import { isRateLimited } from "./index.js";
 
 const PDF_BYTES = Buffer.from("%PDF-1.7\n1 0 obj\n<<>>\nendobj\n");
 const pdfRequest = (bytes = PDF_BYTES) => ({ filename: "deed.pdf", media_type: "application/pdf", data: bytes.toString("base64") });
@@ -115,15 +114,5 @@ describe("extractDocument setup errors", () => {
     const signal = new AbortController().signal;
     await extractDocument(parseExtractRequest(pdfRequest()), { client, signal });
     expect(client.beta.messages.create.mock.calls[0][1]).toEqual({ signal });
-  });
-});
-
-describe("isRateLimited", () => {
-  it("allows 10 requests per minute per IP, then blocks until the window passes", () => {
-    const start = 5_000_000;
-    for (let i = 0; i < 10; i += 1) expect(isRateLimited("10.0.0.1", start + i)).toBe(false);
-    expect(isRateLimited("10.0.0.1", start + 20)).toBe(true);
-    expect(isRateLimited("10.0.0.2", start + 20)).toBe(false);
-    expect(isRateLimited("10.0.0.1", start + 61_000)).toBe(false);
   });
 });

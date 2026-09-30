@@ -33,9 +33,13 @@ const LABEL_TOKENS = new Set(["sy", "no", "survey", "number", "plot", "sno", "s"
 const parcelTokens = (value) =>
   String(value ?? "").toLowerCase().split(/[^a-z0-9]+/).filter((t) => t && !LABEL_TOKENS.has(t));
 
-// "G + 5" / "Ground + 5 floors" -> 6 storeys, "4" -> 4.
+const NUMBER_WORDS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+
+// "G + 5" / "Ground plus five floors" -> 6 storeys, "4" -> 4.
 function storeys(value) {
-  const text = String(value ?? "").toLowerCase();
+  const text = String(value ?? "").toLowerCase()
+    .replace(/\bplus\b/g, "+")
+    .replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\b/g, (w) => String(NUMBER_WORDS[w]));
   const groundPlus = text.match(/\b(?:g|ground)\s*\+\s*(\d+)/);
   if (groundPlus) return Number(groundPlus[1]) + 1;
   const n = text.match(/\d+/);

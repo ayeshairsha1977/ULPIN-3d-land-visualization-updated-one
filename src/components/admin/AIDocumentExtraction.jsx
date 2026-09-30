@@ -3,17 +3,16 @@ import { AlertTriangle, Loader2, ScanText, ShieldAlert, UserCheck } from "lucide
 import { Button } from "@/components/ui/button";
 import Panel from "@/components/common/Panel";
 import AIExtractionTable from "@/components/admin/AIExtractionTable";
-import { extractDocumentFields } from "@/api/aiClient";
 import { compareWithApplication } from "@/lib/aiCompare";
 import { fmtDateTime } from "@/lib/ids";
 import { useRole } from "@/hooks/useRole";
 import { useInvalidate } from "@/hooks/useData";
-import { recordAiExtractionReview } from "@/services/workflow";
+import { recordAiExtractionReview, runAiExtraction } from "@/services/workflow";
 
 const CLOSED = ["ULPIN Assigned", "Rejected"];
 
 export default function AIDocumentExtraction({ app }) {
-  const { user, role } = useRole();
+  const { role } = useRole();
   const invalidate = useInvalidate();
   const documents = app.documents || [];
   const [label, setLabel] = useState(documents[0]?.label || "");
@@ -38,7 +37,7 @@ export default function AIDocumentExtraction({ app }) {
     setBusy("extract");
     setError("");
     try {
-      setResult({ label: doc.label, data: await extractDocumentFields(doc) });
+      setResult({ label: doc.label, data: await runAiExtraction(app.id, doc.label) });
     } catch (err) {
       console.error("AI extraction failed", err);
       setError(err.message || "AI extraction failed.");
@@ -51,7 +50,7 @@ export default function AIDocumentExtraction({ app }) {
     setBusy("record");
     setError("");
     try {
-      await recordAiExtractionReview(app, result.label, result.data, note, user);
+      await recordAiExtractionReview(app.id, result.data.run_id, note);
       invalidate("ULPINApplication");
       setResult(null);
       setNote("");
