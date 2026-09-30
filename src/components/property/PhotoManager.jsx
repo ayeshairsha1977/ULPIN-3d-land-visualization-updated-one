@@ -3,7 +3,8 @@ import { Camera, Loader2, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Panel from "@/components/common/Panel";
 import { Image } from "@/components/ui/image";
-import { localClient } from "@/api/localClient";
+import { uploadPrivate } from "@/lib/files";
+import { deletePropertyPhoto, setPropertyPhoto } from "@/services/workflow";
 import { useEntityList, useInvalidate } from "@/hooks/useData";
 import { useRole } from "@/hooks/useRole";
 import { useToast } from "@/components/ui/use-toast";
@@ -12,7 +13,7 @@ const ACCEPTED = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const EXT = /\.(jpe?g|png|webp)$/i;
 
 export default function PhotoManager({ property }) {
-  const { user, isGov } = useRole();
+  const { isGov } = useRole();
   const invalidate = useInvalidate();
   const { toast } = useToast();
   const { data: photos = [] } = useEntityList("PropertyPhoto", { property_id: property.id });
@@ -37,19 +38,15 @@ export default function PhotoManager({ property }) {
   const save = async () => {
     setBusy(true);
     try {
-      const { file_uri } = await localClient.files.upload(picked.file);
-      const payload = {
-        property_id: property.id,
-        file_uri,
-        file_name: picked.file.name,
-        uploaded_by: user?.full_name || user?.email || "",
-      };
-      if (record) await localClient.entities.PropertyPhoto.update(record.id, payload);
-      else await localClient.entities.PropertyPhoto.create(payload);
+      const { file_id } = await uploadPrivate(picked.file);
+      await setPropertyPhoto(property.id, file_id);
       invalidate("PropertyPhoto");
       URL.revokeObjectURL(picked.preview);
       setPicked(null);
       toast({ title: record ? "Building photo replaced" : "Building photo uploaded", description: `Saved as the official photo for ${property.shortName}.` });
+    } catch (error) {
+      console.error("Saving building photo failed", error);
+      fail("We couldn't save the photo. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -58,9 +55,12 @@ export default function PhotoManager({ property }) {
   const remove = async () => {
     setBusy(true);
     try {
-      await localClient.entities.PropertyPhoto.delete(record.id);
+      await deletePropertyPhoto(property.id);
       invalidate("PropertyPhoto");
       toast({ title: "Building photo removed", description: "The property record and 3D twin continue to work normally." });
+    } catch (error) {
+      console.error("Removing building photo failed", error);
+      fail("We couldn't remove the photo. Please try again.");
     } finally {
       setBusy(false);
     }

@@ -1,6 +1,7 @@
 #env
 .env
 .env.*
+!.env.example
 
 # Logs
 /logs
@@ -34,3 +35,9 @@ dist-ssr
 
 .env
 .vite
+
+# Test coverage output
+coverage
+
+# Uploaded files (local file storage for the API server)
+server/storage

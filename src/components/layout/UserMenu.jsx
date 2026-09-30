@@ -2,13 +2,12 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { LogOut, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { useLocalSession } from "@/lib/LocalSessionContext";
+import { useSession } from "@/lib/SessionContext";
 import { useRole } from "@/hooks/useRole";
 import { CITIZEN_LINKS, GOV_LINKS, SURVEYOR_LINKS } from "@/components/layout/navLinks";
-import DemoRoleSwitch from "@/components/layout/DemoRoleSwitch";
 
 export default function UserMenu() {
-  const { logout } = useLocalSession();
+  const { logout } = useSession();
   const { user, role, label } = useRole();
   const links = role === "government" ? GOV_LINKS : role === "surveyor" ? SURVEYOR_LINKS : CITIZEN_LINKS;
   const initials = (user?.full_name || user?.email || "U").slice(0, 1).toUpperCase();
@@ -30,7 +29,6 @@ export default function UserMenu() {
           {links.map((l) => <Link key={l.to + l.label} to={l.to} className="block px-3 py-2 rounded-md text-sm hover:bg-muted">{l.label}</Link>)}
           {role !== "citizen" && <Link to="/profile" className="block px-3 py-2 rounded-md text-sm hover:bg-muted">Profile</Link>}
         </nav>
-        <div className="p-3 border-t border-line"><DemoRoleSwitch /></div>
         <button onClick={() => logout()} className="w-full flex items-center gap-2 px-4 py-3 border-t border-line text-sm text-red-700 hover:bg-red-50">
           <LogOut className="w-4 h-4" /> Logout
         </button>

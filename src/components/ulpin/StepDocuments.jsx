@@ -1,20 +1,28 @@
 import React, { useState } from "react";
 import { Upload, FileText, X, Loader2 } from "lucide-react";
 import { DOC_SLOTS } from "@/components/ulpin/formModel";
-import { isSupported, uploadPrivate } from "@/lib/files";
+import { uploadPrivate, validateFile } from "@/lib/files";
 
 export default function StepDocuments({ form, patch, errors }) {
   const [busy, setBusy] = useState("");
   const [slotErr, setSlotErr] = useState({});
+  const setSlotError = (label, message) => setSlotErr((prev) => ({ ...prev, [label]: message }));
 
   const onFile = async (label, file) => {
     if (!file) return;
-    if (!isSupported(file)) return setSlotErr({ ...slotErr, [label]: "Please upload a supported document (PDF, JPG or PNG)." });
-    setSlotErr({ ...slotErr, [label]: "" });
+    setSlotError(label, "");
     setBusy(label);
-    const doc = await uploadPrivate(file);
-    patch({ documents: [...form.documents.filter((d) => d.label !== label), { label, ...doc }] });
-    setBusy("");
+    try {
+      const invalid = await validateFile(file);
+      if (invalid) return setSlotError(label, invalid);
+      const doc = await uploadPrivate(file);
+      patch({ documents: [...form.documents.filter((d) => d.label !== label), { label, ...doc }] });
+    } catch (error) {
+      console.error("Document upload failed", error);
+      setSlotError(label, "We couldn't save that file. Please try again.");
+    } finally {
+      setBusy("");
+    }
   };
   const remove = (label) => patch({ documents: form.documents.filter((d) => d.label !== label) });
 
@@ -27,7 +35,7 @@ export default function StepDocuments({ form, patch, errors }) {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-ink">{label}{label === "Ownership Document" && <span className="text-red-600"> *</span>}</p>
               {doc ? <p className="text-xs text-primary flex items-center gap-1 truncate"><FileText className="w-3.5 h-3.5" />{doc.name}</p>
-                : <p className="text-xs text-muted-foreground">PDF, JPG or PNG</p>}
+                : <p className="text-xs text-muted-foreground">PDF, JPG or PNG · max 10 MB</p>}
               {slotErr[label] && <p className="text-xs text-red-600 mt-1">{slotErr[label]}</p>}
             </div>
             {doc ? (
@@ -43,7 +51,7 @@ export default function StepDocuments({ form, patch, errors }) {
         );
       })}
       {errors.documents && <p className="text-sm text-red-600">{errors.documents}</p>}
-      <p className="text-xs text-muted-foreground">Files are stored privately and are only visible to reviewers within this app.</p>
+      <p className="text-xs text-muted-foreground">Files are uploaded to this prototype's server and shown only to you and reviewers. Do not upload real ownership documents.</p>
     </div>
   );
 }

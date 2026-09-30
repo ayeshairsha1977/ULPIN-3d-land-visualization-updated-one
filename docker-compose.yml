@@ -1,0 +1,23 @@
+# Local development database. The credentials below are for local use only;
+# never reuse them in a deployed environment.
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: ulpin-db
+    environment:
+      POSTGRES_USER: ulpin
+      POSTGRES_PASSWORD: ulpin_local_dev
+      POSTGRES_DB: ulpin
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - ulpin-db-data:/var/lib/postgresql/data
+      - ./server/db/init-test-db.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ulpin -d ulpin"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  ulpin-db-data:
