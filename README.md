@@ -1,5 +1,7 @@
 # ULPIN 3D: Vertical Property Mapping Prototype
 
+[![CI](https://github.com/ayeshairsha1977/ULPIN-3d-land-visualization-updated-one/actions/workflows/ci.yml/badge.svg)](https://github.com/ayeshairsha1977/ULPIN-3d-land-visualization-updated-one/actions/workflows/ci.yml)
+
 **A working prototype that turns 2D land parcel records into interactive 3D buildings. It runs a Citizen → Surveyor → Government verification workflow on a real backend, and adds AI document extraction that a surveyor has to check.**
 
 > **Prototype disclaimer.** Building geometry, parcel boundaries, ULPINs (`DEMO-ULPIN-…`) and the "Property Analysis (Illustrative)" card are **demo data**. They are not official cadastral records. Any real use requires authorised surveyor and government verification. It is not connected to any government ULPIN database.
@@ -104,13 +106,47 @@ New users can register at `/register`. They always get the **citizen** role.
 
 | Script | What it does |
 |---|---|
-| `npm run setup` | `docker compose up`, migrate, seed |
+| `npm run setup` | `docker compose up` (database only), migrate, seed |
 | `npm run server` | API server (reads `.env`, applies pending migrations on start) |
 | `npm run dev` | Vite dev server (proxies `/api` to the API) |
 | `npm test` | Unit tests: upload checks, AI comparison, AI server (no database needed) |
 | `npm run test:db` | Integration tests against Postgres: auth, RBAC, workflow, files, GIS, audit log |
 | `npm run lint` / `npm run build` | ESLint over `src/` and `server/` / production build |
 | `npm run db:migrate` / `npm run db:seed` | Apply migrations / seed demo parcels and accounts |
+
+### Run everything in containers
+
+```bash
+docker compose --profile app up --build     # web + API on http://localhost:8787, plus PostGIS
+```
+
+The image builds the web app and serves it from the API server on the same origin. It runs as a non-root user. On start it applies migrations and seeds the demo parcels, plus demo accounts if `SEED_DEMO_PASSWORD` is set.
+
+---
+
+## Deploy
+
+The `Dockerfile` runs on any container host (Render, Railway, Fly.io, a VM). You need:
+
+| Setting | Value |
+|---|---|
+| `DATABASE_URL` | A PostgreSQL 16 database with the **PostGIS** extension available. The first migration runs `CREATE EXTENSION postgis`, so the user needs permission for that |
+| `APP_ORIGINS` | Your public URL, e.g. `https://ulpin-demo.example.org`. Writes from any other origin are rejected |
+| `TRUST_PROXY` | `1` behind the host's load balancer, so rate limits see real client IPs |
+| `SEED_DEMO_PASSWORD` | Optional: creates the three demo accounts |
+| `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_VISION_MODEL` or `ANTHROPIC_API_KEY` | Optional: turns on AI extraction |
+| Volume at `/data/files` | Uploaded documents. Without a persistent volume they are lost on redeploy |
+
+Leave `COOKIE_SECURE` unset in any deployment so session cookies are HTTPS-only.
+
+---
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request:
+- lint, unit tests and build;
+- `npm audit --audit-level=high`;
+- the Postgres integration tests against a PostGIS service container.
 
 ---
 
@@ -141,7 +177,7 @@ Provider (chosen from server config):
    Claude  claude-opus-5-5 reads PDFs and images directly
    Groq    PDF → text layer (unpdf) → GROQ_MODEL (e.g. openai/gpt-oss-120b)
            image → GROQ_VISION_MODEL (e.g. qwen/qwen3.8-27b)
-           scanned PDFs with no text layer → clear error: upload as an image
+           scanned PDF (no text layer) → first 3 pages rendered to PNG → GROQ_VISION_MODEL
 Structured JSON output (strict schema)
    fields: document_type, owner_name, parcel_number, plot_area, land_use,
            floors, address, district, issuing_authority, document_date
@@ -197,7 +233,7 @@ src/
 | The app connects to Postgres as the table owner (can disable the audit trigger) | Separate migration role and a non-owner runtime role in production |
 | 3 demo parcels with schematic geometry | Import real parcel data with CRS/EPSG handling |
 | JavaScript, not TypeScript (`npm run typecheck` fails) | TypeScript migration with strict mode |
-| No CI yet | GitHub Actions: lint, `npm test`, `npm run test:db` with a PostGIS service, `npm audit` |
+| Scanned PDFs: only the first 3 pages reach the Groq vision model (its per-request image limit) | Page-by-page extraction merged on the server |
 
 ---
 

@@ -3,18 +3,22 @@ import { describe, expect, it, vi } from "vitest";
 import Groq from "groq-sdk";
 import { EXTRACTED_FIELDS } from "../schema.js";
 import { chooseExtractor } from "./provider.js";
-import { extractWithGroq, pdfText } from "./groq.js";
+import { MAX_SCAN_PAGES, extractWithGroq, pdfPageImages, pdfText } from "./groq.js";
 
-// Minimal one-page PDF with a real text layer.
-function textPdf(text) {
-  const stream = `BT /F1 12 Tf 72 720 Td (${text}) Tj ET`;
+// Minimal PDF with one page per entry; each page has a real text layer (empty text = "scan").
+function textPdf(...pageTexts) {
+  const n = pageTexts.length;
+  const pageIds = pageTexts.map((_, i) => 4 + i * 2);
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
-    `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${n} >>`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
   ];
+  pageTexts.forEach((text, i) => {
+    const stream = text.trim() ? `BT /F1 12 Tf 72 720 Td (${text}) Tj ET` : "";
+    objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents ${pageIds[i] + 1} 0 R /Resources << /Font << /F1 3 0 R >> >> >>`);
+    objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+  });
   let out = "%PDF-1.4\n";
   const offsets = objects.map((body, i) => {
     const offset = out.length;
@@ -28,7 +32,7 @@ function textPdf(text) {
 }
 
 const DEED = "SALE DEED. Survey No. 123/4A, Kompally village, Medchal district. Seller Ravi Kumar, Buyer Asha Rani.";
-const pdfDoc = (text = DEED) => ({ filename: "deed.pdf", media_type: "application/pdf", data: textPdf(text) });
+const pdfDoc = (...pages) => ({ filename: "deed.pdf", media_type: "application/pdf", data: textPdf(...(pages.length ? pages : [DEED])) });
 const pngDoc = { filename: "deed.png", media_type: "image/png", data: Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64") };
 const config = { apiKey: "test", textModel: "openai/gpt-oss-120b", visionModel: "qwen/qwen3.8-27b" };
 
@@ -41,9 +45,16 @@ const fakeClient = (content, finish_reason = "stop") => ({
   chat: { completions: { create: vi.fn().mockResolvedValue({ model: "openai/gpt-oss-120b", choices: [{ finish_reason, message: { content } }] }) } },
 });
 
-describe("pdfText", () => {
+describe("PDF helpers", () => {
   it("reads the text layer of a PDF", async () => {
     expect(await pdfText(textPdf(DEED))).toContain("Survey No. 123/4A");
+  });
+
+  it("renders at most the first pages of a scan as PNG data URLs", async () => {
+    const { images, totalPages } = await pdfPageImages(textPdf(" ", " ", " ", " "));
+    expect(totalPages).toBe(4);
+    expect(images).toHaveLength(MAX_SCAN_PAGES);
+    expect(images[0]).toMatch(/^data:image\/png;base64,/);
   });
 });
 
@@ -67,8 +78,25 @@ describe("extractWithGroq", () => {
     expect(params.messages[1].content[1].image_url.url).toMatch(/^data:image\/png;base64,/);
   });
 
-  it("explains that scanned PDFs without text need to be uploaded as images", async () => {
-    await expect(extractWithGroq(pdfDoc(" "), { client: fakeClient(validJson()), config })).rejects.toMatchObject({ status: 422 });
+  it("sends scanned PDFs (no text layer) to the vision model as page images", async () => {
+    const client = fakeClient(validJson());
+    await extractWithGroq(pdfDoc(" ", " "), { client, config });
+    const params = client.chat.completions.create.mock.calls[0][0];
+    expect(params.model).toBe("qwen/qwen3.8-27b");
+    const images = params.messages[1].content.filter((part) => part.type === "image_url");
+    expect(images).toHaveLength(2);
+    expect(images[0].image_url.url).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it("tells the model when a long scan was cut to the first pages", async () => {
+    const client = fakeClient(validJson());
+    await extractWithGroq(pdfDoc(" ", " ", " ", " ", " "), { client, config });
+    expect(client.chat.completions.create.mock.calls[0][0].messages[1].content[0].text).toMatch(/first 3 of 5 pages/);
+  });
+
+  it("needs a vision model for scanned PDFs", async () => {
+    await expect(extractWithGroq(pdfDoc(" "), { client: fakeClient(validJson()), config: { ...config, visionModel: "" } }))
+      .rejects.toMatchObject({ status: 503 });
   });
 
   it("requires a vision model for images", async () => {

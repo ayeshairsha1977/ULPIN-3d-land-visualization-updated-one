@@ -1,6 +1,8 @@
+import path from "node:path";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
+import fastifyStatic from "@fastify/static";
 import { SESSION_COOKIE, findSessionUser } from "./auth/sessions.js";
 import { ExtractionError, extractDocument } from "./extract.js";
 import { AccessError } from "./repos/records.js";
@@ -14,6 +16,21 @@ import propertyRoutes from "./routes/properties.js";
 import { MAX_FILE_BYTES } from "./lib/fileTypes.js";
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+// Content-Security-Policy for the web app: only our own scripts; map tiles, Google Fonts and
+// the demo placeholder image are the only third-party resources the pages load.
+export const APP_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https://server.arcgisonline.com https://*.tile.openstreetmap.org https://static.wixstatic.com",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function errorReply(error, request, reply) {
@@ -33,13 +50,14 @@ function errorReply(error, request, reply) {
 /**
  * @param {{ pool: import("pg").Pool, storageDir: string, allowedOrigins?: string[],
  *           secureCookies?: boolean, extract?: typeof extractDocument, logger?: boolean | object,
- *           rateLimits?: typeof DEFAULT_RATE_LIMITS, trustProxy?: boolean | number | string }} options
+ *           rateLimits?: typeof DEFAULT_RATE_LIMITS, trustProxy?: boolean | number | string,
+ *           staticDir?: string | null }} options
  */
 export const DEFAULT_RATE_LIMITS = { global: 300, auth: 10, upload: 30, ai: 10, submit: 10 };
 
 export async function buildApp({
   pool, storageDir, allowedOrigins = ["http://localhost:5173"], secureCookies = false,
-  extract = extractDocument, logger = false, rateLimits = DEFAULT_RATE_LIMITS, trustProxy = false,
+  extract = extractDocument, logger = false, rateLimits = DEFAULT_RATE_LIMITS, trustProxy = false, staticDir = null,
 }) {
   // Behind a reverse proxy set trustProxy, or every client shares the proxy's IP for rate limits.
   const app = Fastify({ logger, bodyLimit: 1024 * 1024, trustProxy });
@@ -73,8 +91,8 @@ export async function buildApp({
     }
   });
 
-  app.addHook("onSend", async (_request, reply, payload) => {
-    reply.header("Cache-Control", "no-store");
+  app.addHook("onSend", async (request, reply, payload) => {
+    if (request.url.startsWith("/api/")) reply.header("Cache-Control", "no-store");
     reply.header("X-Content-Type-Options", "nosniff");
     reply.header("X-Frame-Options", "DENY");
     reply.header("Referrer-Policy", "no-referrer");
@@ -83,7 +101,28 @@ export async function buildApp({
   });
 
   app.setErrorHandler(errorReply);
-  app.setNotFoundHandler((_request, reply) => reply.code(404).send({ success: false, error: "Not found." }));
+  app.setNotFoundHandler((request, reply) => {
+    // Single-page app: unknown non-API GETs load index.html and the client router takes over.
+    if (staticDir && ["GET", "HEAD"].includes(request.method) && !request.url.startsWith("/api/")) {
+      return reply.header("Cache-Control", "no-cache").header("Content-Security-Policy", APP_CSP).sendFile("index.html");
+    }
+    return reply.code(404).send({ success: false, error: "Not found." });
+  });
+
+  if (staticDir) {
+    await app.register(fastifyStatic, {
+      root: staticDir,
+      wildcard: false,
+      index: false,
+      // Called as (reply, path, stat) in @fastify/static v10.
+      setHeaders: (reply, filePath) => {
+        // Vite fingerprints everything under /assets, so those files never change.
+        reply.header("Cache-Control", filePath.includes(`${path.sep}assets${path.sep}`) ? "public, max-age=31536000, immutable" : "no-cache");
+        if (filePath.endsWith(".html")) reply.header("Content-Security-Policy", APP_CSP);
+      },
+    });
+    app.get("/", (_request, reply) => reply.header("Cache-Control", "no-cache").header("Content-Security-Policy", APP_CSP).sendFile("index.html"));
+  }
 
   app.get("/api/health", async () => {
     await pool.query("SELECT 1");

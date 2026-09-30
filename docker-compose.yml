@@ -19,5 +19,25 @@ services:
       timeout: 3s
       retries: 20
 
+  # Full app in one container (web + API). Start with: docker compose --profile app up --build
+  app:
+    profiles: ["app"]
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgres://ulpin:ulpin_local_dev@db:5432/ulpin
+      APP_ORIGINS: http://localhost:8787
+      COOKIE_SECURE: "false"   # local http only; never in a real deployment
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - ulpin-files:/data/files
+
 volumes:
   ulpin-db-data:
+  ulpin-files:

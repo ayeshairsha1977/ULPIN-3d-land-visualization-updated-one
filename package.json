@@ -23,6 +23,8 @@
     "@anthropic-ai/sdk": "^0.129.0",
     "@fastify/cookie": "^11.1.2",
     "@fastify/rate-limit": "^11.2.0",
+    "@fastify/static": "^10.1.5",
+    "@napi-rs/canvas": "^1.0.9",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-aspect-ratio": "^1.1.2",

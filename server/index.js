@@ -23,6 +23,8 @@ const app = await buildApp({
   trustProxy: process.env.TRUST_PROXY ? JSON.parse(process.env.TRUST_PROXY) : false,
   logger: { level: process.env.LOG_LEVEL || "info" },
   extract: ai.extract,
+  // Set in the Docker image: serve the built web app from the same origin as the API.
+  staticDir: process.env.STATIC_DIR ? path.resolve(process.env.STATIC_DIR) : null,
 });
 app.log.info(`AI document extraction provider: ${ai.name}`);
 
