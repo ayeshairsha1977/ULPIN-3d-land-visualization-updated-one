@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Upload, FileText, X, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { isSupported, uploadPrivate } from "@/lib/files";
+import { MAX_FILES_PER_UPLOAD, uploadPrivate, validateFiles } from "@/lib/files";
 
 export default function EvidenceUpload({ files, onChange }) {
   const [busy, setBusy] = useState(false);
@@ -10,17 +10,24 @@ export default function EvidenceUpload({ files, onChange }) {
   const add = async (list) => {
     const picked = Array.from(list || []);
     if (!picked.length) return;
-    if (picked.some((f) => !isSupported(f))) return setErr("Please upload a supported document (PDF, JPG or PNG).");
     setErr("");
     setBusy(true);
-    const uploaded = await Promise.all(picked.map(uploadPrivate));
-    onChange([...files, ...uploaded]);
-    setBusy(false);
+    try {
+      const invalid = await validateFiles(picked, files.length);
+      if (invalid) return setErr(invalid);
+      const uploaded = await Promise.all(picked.map(uploadPrivate));
+      onChange([...files, ...uploaded]);
+    } catch (error) {
+      console.error("Evidence upload failed", error);
+      setErr("We couldn't save that file. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <div className="space-y-2">
-      <Label>Upload Evidence <span className="font-normal text-muted-foreground">(optional)</span></Label>
+      <Label>Upload Evidence <span className="font-normal text-muted-foreground">(optional · PDF, JPG or PNG · max 10 MB each · up to {MAX_FILES_PER_UPLOAD} files)</span></Label>
       <label className="flex items-center justify-center gap-2 h-20 rounded-lg border border-dashed border-line text-sm text-muted-foreground cursor-pointer hover:bg-muted focus-within:ring-2 focus-within:ring-ring">
         {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
         {busy ? "Uploading…" : "Add photos or documents"}

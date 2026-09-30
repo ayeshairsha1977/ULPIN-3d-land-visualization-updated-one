@@ -7,7 +7,15 @@ const HOME = { citizen: "/dashboard", surveyor: "/admin/applications", governmen
 export default function DemoRoleSwitch({ dark }) {
   const { role, setRole } = useRole();
   const [busy, setBusy] = useState("");
-  const pick = async (r) => { setBusy(r); await setRole(r, HOME[r]); };
+  const pick = async (r) => {
+    setBusy(r);
+    try {
+      await setRole(r, HOME[r]);
+    } catch (error) {
+      console.error("Switching demo role failed", error);
+      setBusy("");
+    }
+  };
 
   return (
     <div>

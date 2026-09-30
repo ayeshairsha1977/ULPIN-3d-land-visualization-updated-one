@@ -115,6 +115,35 @@ export async function reviewApplication(app, status, note, reviewer, extra = {})
   await notify(app.created_by_id, `Application: ${patch.status}`, message, "/applications");
 }
 
+// Stores an AI extraction only after a reviewer has looked at it. The AI output is
+// kept as a candidate next to the reviewer's note; it never changes any status.
+export async function recordAiExtractionReview(app, document_label, result, note, reviewer) {
+  if (!isSurveyor(reviewer) && !isGovernmentReviewer(reviewer)) {
+    throw new Error("Surveyor or Government access is required to record an AI review.");
+  }
+  if (!note?.trim()) throw new Error("Add a note describing what you checked against the original document.");
+  const reviewed_at = now();
+  const by = who(reviewer);
+  const entry = {
+    document_label,
+    result,
+    reviewer_id: reviewer.id,
+    reviewer_name: by,
+    reviewer_role: reviewer.demo_role,
+    reviewer_note: note.trim(),
+    reviewed_at,
+  };
+  await E.ULPINApplication.update(app.id, {
+    ai_extractions: [...(app.ai_extractions || []).filter((x) => x.document_label !== document_label), entry],
+    history: [...(app.history || []), {
+      status: "AI Extraction Reviewed",
+      note: `${document_label}: ${note.trim()}`,
+      at: reviewed_at,
+      by,
+    }],
+  });
+}
+
 /* ---------------- Complaints ---------------- */
 export async function submitComplaint(form, user) {
   const complaint_number = await nextNumber("Complaint", "complaint_number", "CMP");

@@ -170,6 +170,12 @@ export const localClient = {
     async upload(file) {
       return { file_uri: await storeFile(file) };
     },
+    async getBlob(file_uri) {
+      if (!file_uri?.startsWith("local-file:")) throw new Error("Only locally stored files can be read.");
+      const file = await readFile(file_uri);
+      if (!file) throw new Error("The stored file could not be found in this browser.");
+      return file;
+    },
     async getUrl(file_uri) {
       if (!file_uri?.startsWith("local-file:")) return file_uri || "";
       const file = await readFile(file_uri);

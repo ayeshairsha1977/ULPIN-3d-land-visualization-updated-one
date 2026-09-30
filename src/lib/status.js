@@ -13,7 +13,7 @@ const MAP = {
   Verified: "success", Approved: "success", "ULPIN Assigned": "success", Assigned: "success", Resolved: "success", Active: "success", Occupied: "success",
   Closed: "neutral", "Not Requested": "neutral", "Not Assigned": "neutral", Open: "info", Available: "info",
   Submitted: "warning", "Application Submitted": "warning", "Pending Verification": "warning",
-  "Under Review": "info", "Under Government Review": "info", "Under Verification": "info", "Under GIS Validation": "info", "Surveyor Review Complete": "info", "Field Verification": "info",
+  "Under Review": "info", "Under Government Review": "info", "Under Verification": "info", "Under GIS Validation": "info", "Surveyor Review Complete": "info", "Field Verification": "info", "AI Extraction Reviewed": "info",
   "Correction Required": "attention", "Action Required": "attention",
   Rejected: "danger", "Complaint Rejected": "danger", "Verification Removed": "danger", "Verification Revoked": "danger", High: "danger", Medium: "warning", Low: "neutral",
   "Complaint Valid / Confirmed": "success",
