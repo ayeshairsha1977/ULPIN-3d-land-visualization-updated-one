@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 200 33% 97%;
+    --foreground: 199 48% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 199 48% 17%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 199 48% 17%;
+    --primary: 175 77% 26%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 180 30% 94%;
+    --secondary-foreground: 199 48% 17%;
+    --muted: 195 30% 95%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 188 60% 94%;
+    --accent-foreground: 199 48% 17%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 191 23% 88%;
+    --input: 191 23% 88%;
+    --ring: 189 94% 43%;
+    --chart-1: 175 77% 26%;
+    --chart-2: 173 80% 40%;
+    --chart-3: 189 94% 43%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 243 75% 59%;
+    --radius: 0.625rem;
+    --font-heading: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-heading tracking-tight;
+  }
+  :focus-visible {
+    outline: 2px solid #06B6D4;
+    outline-offset: 2px;
+  }
+}
+
+.leaflet-container { font-family: var(--font-body); background: #0F2D3D; }
+.leaflet-container .leaflet-control-attribution { font-size: 10px; }
+
+.twin-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: #cffafe;
+  background: rgba(7, 15, 23, 0.78);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.twin-label[data-active="true"] { background: #0891b2; color: #fff; border-color: #a5f3fc; }
+.twin-floor-label { font-family: var(--font-mono); font-size: 10px; color: #64748b; pointer-events: none; }
+.twin-floor-label[data-active="true"] { color: #67e8f9; font-weight: 600; }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  .print-card { box-shadow: none !important; break-inside: avoid; }
+}
