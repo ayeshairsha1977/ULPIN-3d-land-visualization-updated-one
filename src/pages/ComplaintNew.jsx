@@ -39,10 +39,12 @@ export default function ComplaintNew() {
       const c = await submitComplaint({ ...form, property_id: p.id, property_name: p.name, property_code: p.propertyCode, ulpin, location: `${p.location} (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})` }, user);
       invalidate("Complaint", "PropertyHistory", "Notification");
       setDone(c);
-    } catch {
+    } catch (error) {
+      console.error("Complaint submission failed", error);
       setErrors({ submit: "We couldn't submit your complaint. Please try again." });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (done) {

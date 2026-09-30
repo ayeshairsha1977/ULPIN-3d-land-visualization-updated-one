@@ -38,12 +38,18 @@ export default function RemoveVerificationDialog({ propertyId, onRemoved }) {
     if (!finalReason) return setErr("Please select a reason for removing the verification.");
     setBusy(true);
     setErr("");
-    await removeVerification(propertyId, finalReason, remarks.trim(), user);
-    invalidate("PropertyStatus", "Verification", "PropertyHistory");
-    setBusy(false);
-    setOpen(false);
-    setReason(""); setOther(""); setRemarks("");
-    onRemoved?.();
+    try {
+      await removeVerification(propertyId, finalReason, remarks.trim(), user);
+      invalidate("PropertyStatus", "Verification", "PropertyHistory");
+      setOpen(false);
+      setReason(""); setOther(""); setRemarks("");
+      onRemoved?.();
+    } catch (error) {
+      console.error("Removing verification failed", error);
+      setErr(error.message || "We couldn't remove the verification. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (!isGov) return null;

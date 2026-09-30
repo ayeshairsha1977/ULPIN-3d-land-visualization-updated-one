@@ -43,10 +43,12 @@ export default function UlpinRequest() {
       const app = await submitApplication({ ...form, latitude: Number(form.latitude), longitude: Number(form.longitude) }, user);
       invalidate("ULPINApplication", "PropertyStatus", "PropertyHistory", "Notification");
       setDone(app);
-    } catch {
+    } catch (error) {
+      console.error("ULPIN application submission failed", error);
       setSubmitError("We couldn't submit your application. Please try again.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (done) {

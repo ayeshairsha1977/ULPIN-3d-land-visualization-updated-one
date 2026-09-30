@@ -1,6 +1,7 @@
 #env
 .env
 .env.*
+!.env.example
 
 # Logs
 /logs
@@ -34,3 +35,6 @@ dist-ssr
 
 .env
 .vite
+
+# Test coverage output
+coverage

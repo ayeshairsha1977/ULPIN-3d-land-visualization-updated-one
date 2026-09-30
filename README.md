@@ -1,245 +1,154 @@
+# ULPIN 3D: Vertical Property Mapping Prototype
 
-# 🏢 UPLIN
+**A working prototype that turns 2D land parcel records into interactive 3D buildings, adds AI document extraction that a surveyor has to check, and simulates the government verification workflow.**
 
-### From 2D Building Information to Interactive 3D Visualization
+> **Prototype disclaimer.** This project is for visualization and workflow demonstration only. Building geometry, coordinates, ULPINs (`DEMO-ULPIN-…`), roles and the "AI-Assisted Property Analysis" card are **demo data**. They are not official cadastral records. Any real use requires authorised surveyor and government verification. It is not connected to any government ULPIN database.
 
-UPLIN is a smart platform that transforms **traditional 2D building information into an interactive 3D building experience**.
-
-Users can explore a building, switch between floors, view facilities, and check its verification status.
-Authorized government officials can review complaints and update the building's verification status when required.
+ULPIN (Unique Land Parcel Identification Number) is India's 14-character land parcel ID. This prototype explores what a **3D / vertical** extension could look like: one parcel with several floors and units, each of which can be viewed, verified and complained about separately.
 
 ---
 
-## 🚨 Problem
+## What is real vs. simulated
 
-Traditional building information is often presented through:
+Stating this plainly so nobody has to dig through the code to find out.
 
-* 2D maps
-* Static images
-* Text-based information
-* Separate sources
-
-This makes it difficult for users to understand the **actual structure, floors, and facilities of a building**.
-
-There is also no simple connection between **building information, verification, complaints, and government review**.
+| Area | Status | How it works today |
+|---|---|---|
+| 3D building viewer | ✅ Real | Three.js scene built from floor and room data, with orbit controls, floor isolation, room picking, measurement, labels and full GPU cleanup on unmount |
+| Map | ✅ Real | Leaflet map with parcel polygons and search |
+| **AI document extraction** | ✅ **Real (needs API key)** | A small Node server sends an uploaded PDF or image to Claude, which returns structured fields with confidence scores and source quotes. A surveyor compares them with the application and records a review. See [AI pipeline](#ai-pipeline) |
+| Workflow rules | ✅ Real logic, ⚠️ runs in the browser | Citizen → Surveyor → Government state machine with checklist gates and a complaint → review → revoke flow. Covered by unit tests |
+| Upload checks | ⚠️ Client-side | Type, extension, magic-byte, 10 MB and 5-file limits. The AI server repeats the type, size and magic-byte checks |
+| Authentication / roles | ❌ Simulated | A "Demo Mode" switch picks Citizen, Surveyor or Government. Anyone can switch, so it is **not access control** |
+| Database | ❌ Simulated | Browser `localStorage` for records and IndexedDB for uploaded files. Data stays in one browser |
+| "AI-Assisted Property Analysis" card | ❌ Illustrative | Hard-coded text per demo property. The card itself says so |
+| Property geometry and ULPINs | ❌ Demo | Schematic room boxes and `DEMO-ULPIN-000001`-style IDs. Never official |
 
 ---
 
-## 💡 Our Solution
+## Features
 
-UPLIN converts building information into an **interactive 3D visualization**.
+- **Map to 3D twin.** Pick a building on the map and open its digital twin. Switch floors, click rooms, and measure.
+- **ULPIN request wizard.** Location, parcel, applicant and document upload, then submit.
+- **Surveyor review.** Checklist (parcel, coordinates, building, documents, 3D). **AI document extraction** compares the uploaded deed with what the applicant declared.
+- **Government decision.** Only possible after the surveyor finishes the review. Approval assigns a clearly-labelled demo ULPIN.
+- **Complaints.** A complaint never revokes verification by itself. Government must open a review, record a reason and decide (confirmed → verification revoked; rejected → unchanged).
+- **Audit trail.** Every step records who did it, their role, the time and the reason. It is stored in the browser, so it is not tamper-proof (see limits below).
+
+---
+
+## AI pipeline
 
 ```text
-2D Building Information
-          ↓
-   UPLIN Platform
-          ↓
-Interactive 3D Building
-          ↓
-   Floor Navigation
-          ↓
-Building & Facility Information
-          ↓
- Verification Status
+Uploaded deed / patta / permit (PDF, JPG, PNG, ≤10 MB)
+        │  browser reads it from IndexedDB
+        ▼
+POST /api/extract  (server/: type, size, magic-byte checks, 10 req/min/IP)
+        │
+        ▼
+Claude (claude-opus-5-5): structured JSON output
+   fields: document_type, owner_name, parcel_number, plot_area, land_use,
+           floors, address, district, issuing_authority, document_date
+   each:   value · confidence 0–1 · verbatim source quote
+   + warnings (illegible, conflicting, missing stamps) + summary
+        │  server validates the shape with zod
+        ▼
+Surveyor screen: AI value vs. applicant-declared value
+   highlighted when they differ or confidence < 0.6
+        │
+        ▼
+Surveyor writes what they checked → "AI Extraction Reviewed" in history
 ```
 
-Users can visually explore the building instead of only reading static information.
+Design rules:
+
+- **The AI never decides anything.** Its output is stored as a *candidate* next to the reviewer's note. It never changes an application, ULPIN or verification status. Only the surveyor checklist and the government decision do that.
+- **The document is untrusted input.** The system prompt tells the model to transcribe text, not follow it. The output is limited to a fixed JSON schema, and React renders it as plain text.
+- **The API key stays on the server.** The browser talks to `/api/extract` through the Vite proxy. `ANTHROPIC_API_KEY` is never bundled.
+- **Refusals and cut-off responses** come back as clear errors, not partial data. Server-side model fallback (`fallbacks: "default"`) is enabled for safety-classifier declines.
 
 ---
 
-# ⭐ Key Features
+## Run locally
 
-### 🏢 Interactive 3D Building
-
-Transform 2D building information into an interactive 3D representation.
-
-### 🗺️ Map-Based Exploration
-
-Users can locate and select buildings through the map.
-
-### 🏬 Floor Navigation
-
-Users can switch between floors and view floor-specific information.
-
-### ✅ Verification
-
-Verified buildings display a **Verified** badge.
-
-### 📢 Complaint System
-
-Users can report issues related to a building.
-
-### 🏛️ Government Review
-
-Authorized government officials can review complaints and take action.
-
-### 🔄 Verification Revocation
-
-A complaint does **not** immediately remove verification.
-
-```text
-Complaint
-    ↓
-Government Review
-    ↓
- ┌───────────┐
- │  Decision │
- └─────┬─────┘
-       │
-   ┌───┴────┐
-   ↓        ↓
-Rejected  Confirmed
-   ↓        ↓
-Keep      Remove
-Verified  Verified Badge
-```
-
----
-
-# 👥 Three Modes
-
-### 👤 User Mode
-
-Explore buildings, view the 3D model, navigate floors, check facilities and verification, and submit complaints.
-
-### 🏛️ Government Mode
-
-Review complaints, investigate reported issues, and revoke verification when a complaint is confirmed.
-
-### ⚙️ Admin Mode
-
-Manage users, buildings, roles, and overall platform data.
-
----
-
-# 🔄 Project Flow
-
-```text
-       MAP
-        ↓
-    SELECT BUILDING
-        ↓
-   3D VISUALIZATION
-        ↓
-    SELECT FLOOR
-        ↓
- VIEW ROOMS & FACILITIES
-        ↓
- CHECK VERIFICATION
-        ↓
-   SUBMIT COMPLAINT
-        ↓
- GOVERNMENT REVIEW
-        ↓
- UPDATE VERIFICATION
-```
-
----
-
-# 🛠️ Technology Stack
-
-* **Frontend:** React, JavaScript, HTML, CSS
-* **Backend:** REST API
-* **Database:** SQLite
-* **Authentication:** Role-based authentication
-* **3D Visualization:** Web-based 3D rendering
-* **Version Control:** Git & GitHub
-
----
-
-# 🚀 Run Locally
-
-### 1. Clone the repository
+Requires Node 22.9+ (the `server` script uses `--env-file-if-exists`). Tested on Node 22.22.
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
-cd UPLIN
-```
-
-### 2. Install dependencies
-
-```bash
-cd frontend
+git clone https://github.com/ayeshairsha1977/ULPIN-3d-land-visualization-updated-one.git
+cd ULPIN-3d-land-visualization-updated-one
 npm install
+npm run dev            # web app at http://localhost:5173
 ```
 
-For the backend:
+The whole app works without the AI server. To turn on AI extraction, open a second terminal:
 
 ```bash
-cd ../backend
-npm install
+cp .env.example .env   # then set ANTHROPIC_API_KEY=...
+npm run server         # AI API at http://127.0.0.1:8787 (proxied as /api)
 ```
 
-### 3. Configure environment variables
+Try it: switch to **Citizen Demo**, submit a ULPIN request with a real-looking PDF or photo, switch to **Surveyor Demo**, open the application and click **Extract with AI**.
 
-Create `.env` from `.env.example`.
+| Script | What it does |
+|---|---|
+| `npm run dev` | Vite dev server |
+| `npm run server` | AI extraction API (reads `.env`) |
+| `npm test` | Unit + API tests (Vitest) |
+| `npm run coverage` | Tests with coverage for `src/services`, `src/lib`, `server` |
+| `npm run lint` | ESLint over `src/` and `server/` |
+| `npm run build` | Production build |
 
-```env
-PORT=5000
-DATABASE_URL=./database.sqlite
-JWT_SECRET=your_secret_key
-```
+---
 
-### 4. Start the backend
-
-```bash
-npm run dev
-```
-
-### 5. Start the frontend
-
-Open another terminal:
-
-```bash
-cd frontend
-npm run dev
-```
-
-Open the URL shown in the terminal, usually:
+## Project structure
 
 ```text
-http://localhost:5173
+src/
+├── api/localClient.js     # localStorage/IndexedDB stand-in for a backend
+├── api/aiClient.js        # calls /api/extract
+├── services/workflow.js   # application, complaint, verification rules (+ tests)
+├── lib/files.js           # upload validation (+ tests)
+├── lib/aiCompare.js       # AI value vs. declared value (+ tests)
+├── components/twin/       # Three.js viewer, scene, floor/room panels
+├── components/admin/      # checklist, review actions, AI extraction panel
+├── pages/                 # Home, Map, DigitalTwin, Applications, Complaints, admin/*
+└── data/properties.js     # demo properties (schematic, not surveyed)
+server/
+├── index.js               # HTTP server, rate limit, body limit (+ tests)
+├── extract.js             # Claude call, validation, error mapping (+ tests)
+└── schema.js              # JSON schema for model output + zod validators
 ```
 
 ---
 
-# 📁 Project Structure
+## Known limits (read before production)
 
-```text
-UPLIN/
-├── frontend/       # User interface & 3D visualization
-├── backend/        # APIs, authentication & business logic
-├── database/       # Database configuration
-├── uploads/        # Local files/images
-├── .env.example
-└── README.md
-```
+This is a prototype. A production system needs at least:
 
----
+| Gap | What it needs |
+|---|---|
+| Auth is a demo switch | OIDC / government SSO, server-issued sessions, RBAC enforced on the server |
+| Workflow runs in the browser | Move `services/workflow.js` behind an API; the server derives reviewer identity and time |
+| localStorage / IndexedDB | PostgreSQL + PostGIS; object storage for files; database-generated IDs (the demo `ULP-2026-0001` counters can collide across tabs) |
+| Audit log editable in browser | Append-only server-side audit table. Today two tabs saving a review at the same moment can overwrite each other |
+| Uploads | Server-side validation on every upload path, malware scanning, quarantine, signed short-lived URLs |
+| AI server has no auth | Put `/api/extract` behind the same auth; per-user quotas instead of the per-IP limit; global concurrency cap |
+| GIS | Areas here are rough lat/lng offsets. Real work needs CRS/EPSG handling and geodesic area |
+| Typing | `npm run typecheck` currently reports many errors from the JS codebase. A TypeScript migration is planned |
 
-# 🏆 SIH Project
+## Roadmap
 
-UPLIN is developed as a **Smart India Hackathon (SIH)** project.
-
-### Core Idea
-
-> **Convert 2D building information into an interactive 3D experience while connecting users, verification, complaints, and government review in one platform.**
-
----
-
-# 👥 Team & Contributors
-
-| # | Name      | Role      | Contribution      | GitHub        |
-| - | --------- | --------- | ----------------- | ------------- |
-| 1 | Your Name | Your Role | Your Contribution | [GitHub](LINK) |
-| 2 | Member 2  | Role      | Contribution      | [GitHub](LINK) |
-| 3 | Member 3  | Role      | Contribution      | [GitHub](LINK) |
-| 4 | Member 4  | Role      | Contribution      | [GitHub](LINK) |
-| 5 | Member 5  | Role      | Contribution      | [GitHub](LINK) |
-| 6 | Member 6  | Role      | Contribution      | [GitHub](LINK) |
+1. Backend (FastAPI or Node) with PostgreSQL/PostGIS, JWT/OIDC, server-side RBAC and audit log
+2. Move workflow rules and their tests to the server unchanged
+3. AI: footprint and height candidates from satellite or drone imagery, always gated by surveyor review
+4. CI: lint, tests, `npm audit`, CodeQL
 
 ---
 
-### 🔗 Links
+## Team
 
-* **GitHub:** YOUR_REPOSITORY_LINK
+| # | Name | Role | Contribution | GitHub |
+|---|---|---|---|---|
+| 1 | _add_ | | | |
+
+Smart India Hackathon (SIH) project.

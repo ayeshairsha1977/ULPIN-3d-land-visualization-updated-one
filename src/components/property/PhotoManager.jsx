@@ -50,6 +50,9 @@ export default function PhotoManager({ property }) {
       URL.revokeObjectURL(picked.preview);
       setPicked(null);
       toast({ title: record ? "Building photo replaced" : "Building photo uploaded", description: `Saved as the official photo for ${property.shortName}.` });
+    } catch (error) {
+      console.error("Saving building photo failed", error);
+      fail("We couldn't save the photo. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -61,6 +64,9 @@ export default function PhotoManager({ property }) {
       await localClient.entities.PropertyPhoto.delete(record.id);
       invalidate("PropertyPhoto");
       toast({ title: "Building photo removed", description: "The property record and 3D twin continue to work normally." });
+    } catch (error) {
+      console.error("Removing building photo failed", error);
+      fail("We couldn't remove the photo. Please try again.");
     } finally {
       setBusy(false);
     }

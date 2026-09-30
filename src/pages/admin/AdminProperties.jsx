@@ -28,6 +28,7 @@ export default function AdminProperties() {
   const [checks, setChecks] = useState({});
   const [remarks, setRemarks] = useState("");
   const [busy, setBusy] = useState("");
+  const [actionError, setActionError] = useState("");
   const p = PROPERTIES.find((x) => x.id === pid);
   const s = statuses.get(pid);
   const all = CHECKS.every((c) => checks[c]);
@@ -36,10 +37,14 @@ export default function AdminProperties() {
   const act = async (status) => {
     if (!canManageVerification) return;
     setBusy(status);
+    setActionError("");
     try {
       await verifyProperty(pid, status, remarks.trim(), checks, user, `${ROLE_TITLES[role]} (Demo)`);
       invalidate("PropertyStatus", "Verification", "PropertyHistory");
       setRemarks(""); setChecks({});
+    } catch (error) {
+      console.error("Property verification failed", error);
+      setActionError(error.message || "We couldn't update the verification. Please try again.");
     } finally {
       setBusy("");
     }
@@ -81,6 +86,7 @@ export default function AdminProperties() {
               </Button>
             </div>
           ) : <p className="mt-3 text-xs text-muted-foreground">Only a Government Administrator can change verification status.</p>}
+          {actionError && <p role="alert" className="mt-2 text-xs text-red-600">{actionError}</p>}
           {canManageVerification && !hasSurveyorReview && <p className="text-xs text-muted-foreground mt-2">A Surveyor must complete the ULPIN application checklist before this property can be verified.</p>}
           {s.verification_status === "Verified" && (
             <div className="mt-2">

@@ -9,6 +9,7 @@ import HistoryLog from "@/components/common/HistoryLog";
 import EmptyState from "@/components/common/EmptyState";
 import Checklist from "@/components/admin/Checklist";
 import ReviewActions from "@/components/admin/ReviewActions";
+import AIDocumentExtraction from "@/components/admin/AIDocumentExtraction";
 import UlpinAssignedBanner from "@/components/admin/UlpinAssignedBanner";
 import LocationMap from "@/components/property/LocationMap";
 import Twin3DPreview from "@/components/property/Twin3DPreview";
@@ -82,6 +83,7 @@ export default function AdminApplicationReview() {
                 </button></li>))}</ul>
             )}
           </Panel>
+          <AIDocumentExtraction key={app.id} app={app} />
           <div className="grid md:grid-cols-2 gap-6">
             <Panel title="Map Location" icon={MapIcon} bodyClass="p-3"><LocationMap propertyId={p?.id} point={point} /></Panel>
             <Panel title="3D Model" icon={Box} bodyClass="p-3">{p ? <Twin3DPreview property={p} /> : <p className="p-3 text-sm text-muted-foreground">No 3D model is available for this property yet.</p>}</Panel>
