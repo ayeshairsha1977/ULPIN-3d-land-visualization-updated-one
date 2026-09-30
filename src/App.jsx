@@ -1,9 +1,14 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
-import { LocalSessionProvider } from '@/lib/LocalSessionContext';
+import { SessionProvider } from '@/lib/SessionContext';
+import RequireAuth from '@/components/auth/RequireAuth';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 import ScrollToTop from './components/ScrollToTop';
 import AppLayout from '@/components/layout/AppLayout';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -32,25 +37,27 @@ import AdminRecords from '@/pages/admin/AdminRecords';
 const AuthenticatedApp = () => {
   return (
     <Routes>
-      <Route path="/login" element={<Navigate to="/" replace />} />
-      <Route path="/register" element={<Navigate to="/" replace />} />
-      <Route path="/forgot-password" element={<Navigate to="/" replace />} />
-      <Route path="/reset-password" element={<Navigate to="/" replace />} />
       <Route element={<AppLayout />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<Home />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/property/:id" element={<PropertyDetails />} />
           <Route path="/property/:id/3d" element={<DigitalTwin />} />
           <Route path="/property-record/:id" element={<PropertyRecord />} />
           <Route path="/ulpin" element={<UlpinInfo />} />
-          <Route path="/ulpin/request" element={<UlpinRequest />} />
-          <Route path="/applications" element={<Applications />} />
-          <Route path="/complaints" element={<Complaints />} />
-          <Route path="/complaints/new" element={<ComplaintNew />} />
           <Route path="/about" element={<About />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/properties" element={<MyProperties />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route element={<RequireAuth />}>
+            <Route path="/ulpin/request" element={<UlpinRequest />} />
+            <Route path="/applications" element={<Applications />} />
+            <Route path="/complaints" element={<Complaints />} />
+            <Route path="/complaints/new" element={<ComplaintNew />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/properties" element={<MyProperties />} />
+            <Route path="/profile" element={<Profile />} />
+          </Route>
           <Route element={<AdminLayout allow={["government", "surveyor"]} />}>
             <Route path="/admin/applications" element={<AdminApplications />} />
             <Route path="/admin/applications/:id" element={<AdminApplicationReview />} />
@@ -74,7 +81,7 @@ const AuthenticatedApp = () => {
 function App() {
 
   return (
-    <LocalSessionProvider>
+    <SessionProvider>
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <ScrollToTop />
@@ -82,7 +89,7 @@ function App() {
         </Router>
         <Toaster />
       </QueryClientProvider>
-    </LocalSessionProvider>
+    </SessionProvider>
   )
 }
 

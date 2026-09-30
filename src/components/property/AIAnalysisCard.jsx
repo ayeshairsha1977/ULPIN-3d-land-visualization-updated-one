@@ -5,7 +5,7 @@ import DemoTag from "@/components/common/DemoTag";
 
 export default function AIAnalysisCard({ property }) {
   return (
-    <Panel title="AI-Assisted Property Analysis" icon={Sparkles} action={<DemoTag>Demo AI Analysis</DemoTag>}>
+    <Panel title="Property Analysis (Illustrative)" icon={Sparkles} action={<DemoTag>Demo Data</DemoTag>}>
       <ul className="space-y-3">
         {property.analysis.map((a) => (
           <li key={a.title} className="flex gap-3">
@@ -17,7 +17,7 @@ export default function AIAnalysisCard({ property }) {
           </li>
         ))}
       </ul>
-      <p className="mt-4 text-[11px] text-muted-foreground">Illustrative outputs — no AI model or confidence score is involved. Not an official government decision.</p>
+      <p className="mt-4 text-[11px] text-muted-foreground">Illustrative, hand-written outputs. No AI model or confidence score is involved here. Real AI document extraction runs in the Surveyor review screen. Not an official government decision.</p>
     </Panel>
   );
 }

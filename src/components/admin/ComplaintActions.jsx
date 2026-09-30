@@ -4,13 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { localClient } from "@/api/localClient";
 import { useRole } from "@/hooks/useRole";
 import { useInvalidate } from "@/hooks/useData";
-import { assignComplaint, decideComplaint, updateComplaint } from "@/services/workflow";
+import { assignComplaint, decideComplaint, setComplaintPriority, updateComplaint } from "@/services/workflow";
 
 export default function ComplaintActions({ complaint: c }) {
-  const { user, isGov } = useRole();
+  const { isGov } = useRole();
   const invalidate = useInvalidate();
   const [officer, setOfficer] = useState(c.assigned_officer || "Field Officer (Demo)");
   const [note, setNote] = useState("");
@@ -41,13 +40,13 @@ export default function ComplaintActions({ complaint: c }) {
       return;
     }
     await run(status, async () => {
-      await decideComplaint(c, status, decisionReason, user);
+      await decideComplaint(c.id, status, decisionReason);
       invalidate("PropertyStatus", "Verification", "PropertyHistory");
       setDecisionReason("");
     });
   };
 
-  const setPriority = (priority) => run("priority", () => localClient.entities.Complaint.update(c.id, { priority }));
+  const setPriority = (priority) => run("priority", () => setComplaintPriority(c.id, priority));
 
   if (!isGov) return <p className="text-sm text-muted-foreground">Government reviewer access is required to manage this complaint.</p>;
 
@@ -71,7 +70,7 @@ export default function ComplaintActions({ complaint: c }) {
         <Label htmlFor="officer">Assign officer</Label>
         <div className="flex gap-2">
           <Input id="officer" value={officer} onChange={(e) => setOfficer(e.target.value)} className="h-10" disabled={!!busy || finalDecision} />
-          <Button variant="outline" disabled={!!busy || finalDecision || !officer.trim()} onClick={() => run("assign", () => assignComplaint(c, officer.trim(), user))}>
+          <Button variant="outline" disabled={!!busy || finalDecision || !officer.trim()} onClick={() => run("assign", () => assignComplaint(c.id, officer.trim()))}>
             {busy === "assign" && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}Assign
           </Button>
         </div>
@@ -82,7 +81,10 @@ export default function ComplaintActions({ complaint: c }) {
             <Label htmlFor="review-note">Review note (optional)</Label>
             <textarea id="review-note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} className="w-full rounded-md border border-input px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
           </div>
-          <Button className="w-full" disabled={!!busy} onClick={() => run("review", () => updateComplaint(c, "Under Government Review", note.trim(), user, { assigned_officer: c.assigned_officer || officer.trim() }))}>
+          <Button className="w-full" disabled={!!busy} onClick={() => run("review", async () => {
+            if (!c.assigned_officer) await assignComplaint(c.id, officer.trim());
+            await updateComplaint(c.id, "Under Government Review", note.trim());
+          })}>
             {busy === "review" && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Start Government Review
           </Button>
         </div>

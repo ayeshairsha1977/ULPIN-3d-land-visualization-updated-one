@@ -1,10 +1,9 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { LogOut } from "lucide-react";
-import { useLocalSession } from "@/lib/LocalSessionContext";
+import { LogIn, LogOut } from "lucide-react";
+import { useSession } from "@/lib/SessionContext";
 import { useRole } from "@/hooks/useRole";
 import { PUBLIC_LINKS, CITIZEN_LINKS, GOV_LINKS, SURVEYOR_LINKS } from "@/components/layout/navLinks";
-import DemoRoleSwitch from "@/components/layout/DemoRoleSwitch";
 
 const cls = ({ isActive }) => `block px-3 py-2.5 rounded-md text-sm ${isActive ? "bg-white/10 text-white" : "text-slate-300 hover:text-white"}`;
 
@@ -18,18 +17,26 @@ function Group({ title, links, onNavigate }) {
 }
 
 export default function MobileNav({ onNavigate }) {
-  const { logout } = useLocalSession();
+  const { user, logout } = useSession();
   const { role } = useRole();
   const roleLinks = role === "government" ? GOV_LINKS : role === "surveyor" ? SURVEYOR_LINKS : CITIZEN_LINKS;
   return (
     <div className="h-full overflow-y-auto p-4 space-y-6">
       <p className="font-heading font-extrabold px-3 pt-2">ULPIN 3D</p>
       <Group title="Explore" links={PUBLIC_LINKS} onNavigate={onNavigate} />
-      <Group title={role === "citizen" ? "My Account" : "Government"} links={roleLinks} onNavigate={onNavigate} />
-      <div className="px-3"><DemoRoleSwitch dark /></div>
-      <button onClick={() => logout()} className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-300 hover:text-white">
-        <LogOut className="w-4 h-4" /> Logout
-      </button>
+      {user ? (
+        <>
+          <Group title={role === "citizen" ? "My Account" : "Government"} links={roleLinks} onNavigate={onNavigate} />
+          <p className="px-3 text-xs text-slate-400 truncate">{user.email}</p>
+          <button onClick={() => logout()} className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-300 hover:text-white">
+            <LogOut className="w-4 h-4" /> Logout
+          </button>
+        </>
+      ) : (
+        <NavLink to="/login" onClick={onNavigate} className="flex items-center gap-2 px-3 py-2.5 text-sm text-white">
+          <LogIn className="w-4 h-4" /> Sign in
+        </NavLink>
+      )}
     </div>
   );
 }

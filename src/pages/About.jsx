@@ -5,7 +5,7 @@ import HowItWorks from "@/components/home/HowItWorks";
 const TECH = [
   [Globe, "GIS", "Satellite basemap, georeferenced demo parcel boundaries, search and measurement."],
   [Box, "3D Visualization", "WebGL digital twin with floor and room selection."],
-  [Sparkles, "AI-Assisted Analysis", "Illustrative analysis outputs, clearly labelled as demo."],
+  [Sparkles, "AI Document Extraction", "Claude reads uploaded deeds and proposes parcel, owner, area and floor values with confidence scores. A surveyor must review every result."],
   [Database, "Geospatial Database", "Structured records for properties, applications, complaints and history."],
   [Monitor, "Web Application", "Responsive citizen, surveyor and government interfaces."],
   [FileCheck, "Digital Property Records", "Printable, connected record of each property."],

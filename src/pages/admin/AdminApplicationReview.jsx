@@ -9,6 +9,8 @@ import HistoryLog from "@/components/common/HistoryLog";
 import EmptyState from "@/components/common/EmptyState";
 import Checklist from "@/components/admin/Checklist";
 import ReviewActions from "@/components/admin/ReviewActions";
+import AIDocumentExtraction from "@/components/admin/AIDocumentExtraction";
+import GisCheckPanel from "@/components/admin/GisCheckPanel";
 import UlpinAssignedBanner from "@/components/admin/UlpinAssignedBanner";
 import LocationMap from "@/components/property/LocationMap";
 import Twin3DPreview from "@/components/property/Twin3DPreview";
@@ -17,7 +19,6 @@ import { getProperty } from "@/data/properties";
 import { openPrivate } from "@/lib/files";
 import { fmtDate } from "@/lib/ids";
 import { useRole } from "@/hooks/useRole";
-import DemoRoleSwitch from "@/components/layout/DemoRoleSwitch";
 
 const CHECKS = ["Parcel Information", "Coordinates", "Building Information", "Documents", "3D Representation"];
 
@@ -38,10 +39,7 @@ export default function AdminApplicationReview() {
         <Panel title="Waiting for Surveyor Review" icon={ListChecks}>
           <p className="text-sm text-muted-foreground">Government can review the documents and make a decision only after a Surveyor completes the required checklist.</p>
           <div className="mt-4 flex items-center gap-3"><span className="font-mono text-sm">{app.application_number}</span><StatusBadge status={app.status} /></div>
-          <div className="mt-5 border-t border-line pt-4">
-            <p className="text-sm font-medium text-ink mb-2">Switch to Surveyor Demo to review this application</p>
-            <DemoRoleSwitch />
-          </div>
+          <p className="mt-5 border-t border-line pt-4 text-sm text-muted-foreground">A Surveyor account must complete the checklist first.</p>
         </Panel>
       </div>
     );
@@ -82,6 +80,8 @@ export default function AdminApplicationReview() {
                 </button></li>))}</ul>
             )}
           </Panel>
+          <GisCheckPanel check={app.gis_check} />
+          <AIDocumentExtraction key={app.id} app={app} />
           <div className="grid md:grid-cols-2 gap-6">
             <Panel title="Map Location" icon={MapIcon} bodyClass="p-3"><LocationMap propertyId={p?.id} point={point} /></Panel>
             <Panel title="3D Model" icon={Box} bodyClass="p-3">{p ? <Twin3DPreview property={p} /> : <p className="p-3 text-sm text-muted-foreground">No 3D model is available for this property yet.</p>}</Panel>

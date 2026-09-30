@@ -24,7 +24,7 @@ export default function ReviewActions({ app, checklist, allChecked }) {
     setErr("");
     setBusy(status);
     try {
-      await reviewApplication(app, status, remarks.trim(), user, { checklist });
+      await reviewApplication(app.id, status, remarks.trim(), checklist);
       invalidate("ULPINApplication", "PropertyStatus", "Verification", "PropertyHistory", "Notification");
       setRemarks("");
     } catch (error) {
@@ -81,7 +81,7 @@ export default function ReviewActions({ app, checklist, allChecked }) {
           )}
         </>
       )}
-      <p className="text-[11px] text-muted-foreground">Local demo workflow; decisions are stored in this browser only.</p>
+      <p className="text-[11px] text-muted-foreground">Demo workflow. The server checks your role and records every decision in the audit log.</p>
     </div>
   );
 }

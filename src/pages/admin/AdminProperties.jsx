@@ -12,14 +12,14 @@ import VerificationCard from "@/components/property/VerificationCard";
 import { propertyFields } from "@/components/property/propertyFields";
 import { PROPERTIES } from "@/data/properties";
 import { useEntityList, useStatuses, useInvalidate } from "@/hooks/useData";
-import { useRole, ROLE_TITLES } from "@/hooks/useRole";
+import { useRole } from "@/hooks/useRole";
 import { verifyProperty } from "@/services/workflow";
 import RemoveVerificationDialog from "@/components/admin/RemoveVerificationDialog";
 
 const CHECKS = ["2D map & boundary", "3D model", "Property data", "Documents"];
 
 export default function AdminProperties() {
-  const { user, role } = useRole();
+  const { role } = useRole();
   const canManageVerification = role === "government";
   const [pid, setPid] = useState(PROPERTIES[2].id);
   const { data: applications = [] } = useEntityList("ULPINApplication", { property_id: pid });
@@ -28,6 +28,7 @@ export default function AdminProperties() {
   const [checks, setChecks] = useState({});
   const [remarks, setRemarks] = useState("");
   const [busy, setBusy] = useState("");
+  const [actionError, setActionError] = useState("");
   const p = PROPERTIES.find((x) => x.id === pid);
   const s = statuses.get(pid);
   const all = CHECKS.every((c) => checks[c]);
@@ -36,10 +37,14 @@ export default function AdminProperties() {
   const act = async (status) => {
     if (!canManageVerification) return;
     setBusy(status);
+    setActionError("");
     try {
-      await verifyProperty(pid, status, remarks.trim(), checks, user, `${ROLE_TITLES[role]} (Demo)`);
+      await verifyProperty(pid, status, remarks.trim(), checks);
       invalidate("PropertyStatus", "Verification", "PropertyHistory");
       setRemarks(""); setChecks({});
+    } catch (error) {
+      console.error("Property verification failed", error);
+      setActionError(error.message || "We couldn't update the verification. Please try again.");
     } finally {
       setBusy("");
     }
@@ -81,6 +86,7 @@ export default function AdminProperties() {
               </Button>
             </div>
           ) : <p className="mt-3 text-xs text-muted-foreground">Only a Government Administrator can change verification status.</p>}
+          {actionError && <p role="alert" className="mt-2 text-xs text-red-600">{actionError}</p>}
           {canManageVerification && !hasSurveyorReview && <p className="text-xs text-muted-foreground mt-2">A Surveyor must complete the ULPIN application checklist before this property can be verified.</p>}
           {s.verification_status === "Verified" && (
             <div className="mt-2">
